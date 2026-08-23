@@ -170,14 +170,13 @@
 
   <script>
     // Supabase Konfiguration
-    const SUPABASE_URL = "https://zsmaaazkhmghdnivrhco.supabase.co/rest/v1/";
+    const SUPABASE_URL = "https://zsmaaazkhmghdnivrhco.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_mTQMdk-CaltROGIyPAEOsw_a4JSMPxR";
     const TABLE_NAME = "fonts_3";
 
     let supabaseClient = null;
     let fontList = [];
     let currentFontFamily = "";
-
     const inputText = document.getElementById('input-text');
     const fontSelect = document.getElementById('font-select');
     const previewRender = document.getElementById('preview-render');
