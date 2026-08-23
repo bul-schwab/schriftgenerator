@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schrift- & Namensauswahl (Kollektion 2)</title>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #111111;
+      --border: #e2e2e2;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 24px;
+      text-align: center;
+      background: #fff;
+    }
+    .brand-title { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+
+    main { max-width: 820px; width: 100%; margin: 0 auto; padding: 32px 20px 60px 20px; }
+
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; color: #222; }
+
+    input[type="text"], select {
+      width: 100%;
+      padding: 13px 15px;
+      font-size: 16px;
+      border: 1.5px solid #111;
+      border-radius: var(--radius);
+      outline: none;
+      background: #fff;
+      color: #111;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: #000;
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+    }
+
+    .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .input-grid { grid-template-columns: 1fr; } }
+
+    .slider-row { display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+    .slider-row input[type="range"] { flex: 1; accent-color: #000; height: 5px; cursor: pointer; }
+    .slider-row span { font-size: 13px; color: #666; width: 45px; text-align: right; font-weight: 500; }
+
+    /* Live Preview Box */
+    .preview-box {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      background: #fafafa;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 36px 20px;
+      margin-top: 24px;
+      text-align: center;
+      word-break: break-word;
+      position: relative;
+    }
+    .preview-text {
+      font-size: 44px;
+      line-height: 1.3;
+      color: #000;
+      transition: font-size 0.1s ease;
+    }
+    .preview-font-meta {
+      position: absolute;
+      bottom: 12px;
+      right: 16px;
+      font-size: 12px;
+      color: #777;
+      font-weight: 600;
+    }
+
+    /* Schnellvergleich Cards */
+    .font-overview-header {
+      margin-top: 40px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .font-overview-header h3 { font-size: 15px; font-weight: 600; }
+
+    .font-card-list { display: flex; flex-direction: column; gap: 12px; }
+    .font-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      background: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background-color 0.15s;
+    }
+    .font-card:hover, .font-card.selected { border-color: #000; background: #fafafa; }
+    .font-card .text-render { font-size: 28px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 16px; }
+    .font-card .font-badge { font-size: 13px; font-weight: 700; color: #333; white-space: nowrap; background: #f0f0f0; padding: 4px 10px; border-radius: 4px; }
+
+    .loading-banner {
+      text-align: center;
+      padding: 40px 20px;
+      color: #777;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-title">Schriftart & Textvorschau</div>
+  </header>
+
+  <main>
+    <div id="app-content" style="display: none;">
+      <div class="input-grid">
+        <div class="form-group">
+          <label for="input-text">1. Wunschtext eingeben</label>
+          <input type="text" id="input-text" placeholder="z. B. Wunschname oder Text..." value="Dein Wunschtext">
+        </div>
+        
+        <div class="form-group">
+          <label for="font-select">2. Schriftart auswählen</label>
+          <select id="font-select"></select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Größe anpassen</label>
+        <div class="slider-row">
+          <input type="range" id="slider-size" min="20" max="80" value="44">
+          <span id="size-val">44px</span>
+        </div>
+      </div>
+
+      <!-- Live-Vorschau -->
+      <div class="preview-box">
+        <div id="preview-render" class="preview-text">Dein Wunschtext</div>
+        <div id="preview-font-info" class="preview-font-meta"></div>
+      </div>
+
+      <!-- Übersicht aller Schriftarten -->
+      <div class="font-overview-header">
+        <h3>Alle Schriftarten im Vergleich</h3>
+        <span style="font-size: 12px; color: #777;">Klicken zum Auswählen</span>
+      </div>
+      <div id="font-cards-container" class="font-card-list"></div>
+    </div>
+
+    <div id="loading-state" class="loading-banner">
+      Lade Schriftarten...
+    </div>
+  </main>
+
+  <script>
+    // Supabase Konfiguration
+    const SUPABASE_URL = "https://zsmaaazkhmghdnivrhco.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_mTQMdk-CaltROGIyPAEOsw_a4JSMPxR";
+    const TABLE_NAME = "fonts_2";
+
+    let supabaseClient = null;
+    let fontList = [];
+    let currentFontFamily = "";
+
+    const inputText = document.getElementById('input-text');
+    const fontSelect = document.getElementById('font-select');
+    const previewRender = document.getElementById('preview-render');
+    const previewFontInfo = document.getElementById('preview-font-info');
+    const sliderSize = document.getElementById('slider-size');
+    const sizeVal = document.getElementById('size-val');
+    const fontCardsContainer = document.getElementById('font-cards-container');
+
+    async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const url = params.get('sb_url') || localStorage.getItem('font_app_sb_url') || SUPABASE_URL;
+      const key = params.get('sb_key') || localStorage.getItem('font_app_sb_key') || SUPABASE_ANON_KEY;
+
+      if (!url || url.includes('DEINE_SUPABASE_URL')) {
+        document.getElementById('loading-state').innerHTML = '⚠️ Bitte trage im Script deine Supabase Zugangsdaten ein.';
+        return;
+      }
+
+      try {
+        supabaseClient = supabase.createClient(url, key);
+        await loadFonts();
+      } catch(err) {
+        document.getElementById('loading-state').innerHTML = 'Fehler beim Laden: ' + err.message;
+      }
+    }
+
+    async function loadFonts() {
+      const { data, error } = await supabaseClient
+        .from(TABLE_NAME)
+        .select('*')
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        document.getElementById('loading-state').innerHTML = 'Fehler beim Abrufen der Schriftarten: ' + error.message;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        document.getElementById('loading-state').innerHTML = 'Aktuell sind noch keine Schriftarten für Generator 2 hinterlegt.';
+        return;
+      }
+
+      fontList = [];
+
+      // Schriften laden und durchnummerieren: Schriftart 1, Schriftart 2, ...
+      data.forEach((item, index) => {
+        const fontFaceName = "CustomerFont2_" + item.id;
+        const fontFace = new FontFace(fontFaceName, `url(${item.file_url})`);
+        
+        fontFace.load().then(loaded => {
+          document.fonts.add(loaded);
+        }).catch(e => console.error(e));
+
+        fontList.push({
+          id: item.id,
+          name: "Schriftart " + (index + 1),
+          family: `"${fontFaceName}", sans-serif`
+        });
+      });
+
+      if (fontList.length > 0) {
+        currentFontFamily = fontList[0].family;
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+
+        renderDropdown();
+        renderCards();
+        updatePreview();
+        attachEvents();
+      }
+    }
+
+    function renderDropdown() {
+      fontSelect.innerHTML = '';
+      fontList.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.family;
+        opt.textContent = f.name;
+        if (f.family === currentFontFamily) opt.selected = true;
+        fontSelect.appendChild(opt);
+      });
+    }
+
+    function updatePreview() {
+      const text = inputText.value.trim() || 'Dein Wunschtext';
+      previewRender.textContent = text;
+      previewRender.style.fontFamily = currentFontFamily;
+      previewRender.style.fontSize = sliderSize.value + 'px';
+
+      const found = fontList.find(f => f.family === currentFontFamily);
+      previewFontInfo.textContent = (found ? found.name : '');
+
+      document.querySelectorAll('.font-card').forEach(card => {
+        const span = card.querySelector('.text-render');
+        if (span) span.textContent = text;
+        card.classList.toggle('selected', card.getAttribute('data-family') === currentFontFamily);
+      });
+    }
+
+    function renderCards() {
+      fontCardsContainer.innerHTML = '';
+      const text = inputText.value.trim() || 'Dein Wunschtext';
+
+      fontList.forEach(font => {
+        const card = document.createElement('div');
+        card.className = 'font-card' + (font.family === currentFontFamily ? ' selected' : '');
+        card.setAttribute('data-family', font.family);
+        card.onclick = () => {
+          currentFontFamily = font.family;
+          fontSelect.value = font.family;
+          updatePreview();
+        };
+
+        const span = document.createElement('div');
+        span.className = 'text-render';
+        span.style.fontFamily = font.family;
+        span.textContent = text;
+
+        const badge = document.createElement('div');
+        badge.className = 'font-badge';
+        badge.textContent = font.name;
+
+        card.appendChild(span);
+        card.appendChild(badge);
+        fontCardsContainer.appendChild(card);
+      });
+    }
+
+    function attachEvents() {
+      inputText.addEventListener('input', updatePreview);
+      fontSelect.addEventListener('change', (e) => {
+        currentFontFamily = e.target.value;
+        updatePreview();
+      });
+      sliderSize.addEventListener('input', (e) => {
+        sizeVal.textContent = e.target.value + 'px';
+        updatePreview();
+      });
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
